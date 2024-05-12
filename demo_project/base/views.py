@@ -71,13 +71,14 @@ def home(request):
     
     topic = Topic.objects.all()
     room_count = rooms.count() #same execution with len function
+    room_messages = Message.objects.filter(Q(room__topic__name__icontains=q)) 
 
-    context = {'rooms': rooms, 'topics': topic, 'room_count': room_count}
+    context = {'rooms': rooms, 'topics': topic, 'room_count': room_count, 'room_messages': room_messages}
     return render(request, 'base/home.html', context)
 
 def room(request, pk):
     room= Room.objects.get(id=pk)
-    room_messages = room.message_set.all().order_by('-created')
+    room_messages = room.message_set.all()
     participants = room.participants.all()
     if request.method == 'POST':
         message = request.POST.get('body')
@@ -134,14 +135,14 @@ def deleteRoom(request, pk):
 def deleteMessage(request, pk):
     message = Message.objects.get(id=pk)
     room = Room.objects.get(id=message.room_id)
-    participants = room.participants.filter(participants= request.user.id).count()
+    participant_count = room.participants.filter(participants= request.user.id).count()
     
     if request.user != message.user:
         return HttpResponse('You are not allowed to here')
     
     if request.method == 'POST':
         message.delete()
-        if participants <= 0:
+        if participant_count <= 0:
             room.participants.remove(request.user)
         return redirect('room', pk = room.id)
     return render(request, 'base/delete.html', {'obj': message})
